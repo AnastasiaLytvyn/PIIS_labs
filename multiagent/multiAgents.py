@@ -135,18 +135,18 @@ class MinimaxAgent(MultiAgentSearchAgent):
     def max(self, agent: int, depth: int, gameState: GameState, legalMoves):
         legalMoves = gameState.getLegalActions(agent)
         bestMax = float("-inf")
-        bestMove = "Stop"
+        theDirection = "Stop"
         for move in legalMoves:
             successor = gameState.generateSuccessor(agent, move)
             bestMax = max(bestMax, self.minimax(
                 agent + 1, depth, successor)[0])
             if bestMax == self.minimax(agent + 1, depth, successor)[0]:
-                bestMove = move
-        return bestMax, bestMove
+                theDirection = move
+        return bestMax, theDirection
 
     def min(self, agent: int, depth: int, gameState: GameState, legalMoves):
         bestMin = float("inf")
-        bestMove = "Stop"
+        theDirection = "Stop"
         nextAgent = agent + 1
         numOfAgents = gameState.getNumAgents()
         if agent == numOfAgents - 1:
@@ -158,8 +158,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
             bestMin = min(bestMin, self.minimax(
                 nextAgent, depth, successor)[0])
             if bestMin == self.minimax(nextAgent, depth, successor)[0]:
-                bestMove = move
-        return bestMin, bestMove
+                theDirection = move
+        return bestMin, theDirection
 
     def getAction(self, gameState: GameState):
         """
@@ -208,22 +208,22 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     def max(self, agent: int, depth: int, gameState: GameState, legalMoves, alpha, beta):
         legalMoves = gameState.getLegalActions(agent)
         bestMax = float("-inf")
-        bestMove = "Stop"
+        theDirection = "Stop"
         for move in legalMoves:
             successor = gameState.generateSuccessor(agent, move)
             successorScore = self.alphaBeta(
                 agent + 1, depth, successor, alpha, beta)[0]
             bestMax = max(bestMax, successorScore)
             if bestMax == successorScore:
-                bestMove = move
+                theDirection = move
                 alpha = max(alpha, bestMax)
                 if alpha > beta:
                     break
-        return bestMax, bestMove
+        return bestMax, theDirection
 
     def min(self, agent: int, depth: int, gameState: GameState, legalMoves, alpha, beta):
         bestMin = float("inf")
-        bestMove = "Stop"
+        theDirection = "Stop"
         nextAgent = agent + 1
         numOfAgents = gameState.getNumAgents()
         if agent == numOfAgents - 1:
@@ -236,11 +236,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 nextAgent, depth, successor, alpha, beta)[0]
             bestMin = min(bestMin, successorScore)
             if bestMin == successorScore:
-                bestMove = move
+                theDirection = move
             beta = min(beta, bestMin)
             if alpha > beta:
                 break
-        return bestMin, bestMove
+        return bestMin, theDirection
 
     def getAction(self, gameState: GameState):
         """
@@ -252,18 +252,59 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
-      Your expectimax agent (question 4)
+      Your expectiMax agent (question 4)
     """
+
+    def expectiMax(self, agent, depth, gameState: GameState):
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState), None
+
+        legalMoves = gameState.getLegalActions(agent)
+
+        if agent == 0:
+            return self.max(agent, depth, gameState, legalMoves)
+
+        else:
+            return self.expected(agent, depth, gameState, legalMoves)
+
+    def max(self, agent: int, depth: int, gameState: GameState, legalMoves):
+        legalMoves = gameState.getLegalActions(agent)
+        bestMax = -999
+        theDirection = "Stop"
+        for move in legalMoves:
+            successor = gameState.generateSuccessor(agent, move)
+            bestMax = max(bestMax, self.expectiMax(
+                agent + 1, depth, successor)[0])
+            if bestMax == self.expectiMax(agent + 1, depth, successor)[0]:
+                theDirection = move
+        return bestMax, theDirection
+
+    def expected(self, agent: int, depth: int, gameState: GameState, legalMoves):
+        sumOfChildren = 0
+        numOfChildren = len(legalMoves)
+
+        numOfAgents = gameState.getNumAgents()
+        nextAgent = agent + 1
+        if agent == numOfAgents - 1:
+            nextAgent = 0
+            depth += 1
+
+        for move in legalMoves:
+            successor = gameState.generateSuccessor(agent, move)
+            tempMin = self.expectiMax(nextAgent, depth, successor)[0]
+            sumOfChildren += tempMin
+        expectedMin = sumOfChildren / numOfChildren
+        return expectedMin, None
 
     def getAction(self, gameState: GameState):
         """
-        Returns the expectimax action using self.depth and self.evaluationFunction
+        Returns the expectiMax action using self.depth and self.evaluationFunction
 
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.expectiMax(0, 0, gameState)[1]
 
 
 def betterEvaluationFunction(currentGameState: GameState):
