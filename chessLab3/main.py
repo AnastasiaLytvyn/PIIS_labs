@@ -37,19 +37,22 @@ class NegaAgent:
         materialBalance = self.material_balance()
         return materialBalance * (numberOfWhites - numberOfBlacks) * whoToMove
 
-    def negaMax(self, depth: int, whoToMove: int, alpha, beta) -> tuple:
+    def negaMax(self, depth: int, whoToMove: int, alpha, beta, choice) -> tuple:
         if depth == 0:
             return self.evaluationFunction(whoToMove), None
-        if alpha == float("-inf"):
+        if choice == 1:
+          return self.minmax(depth, whoToMove)
+        elif choice == 2:
           return self.minmaxScout(depth, whoToMove, alpha, beta)
         else:
-          return self.minmax(depth, whoToMove)
+          return self.minmaxPVC(depth, whoToMove, alpha, beta)
+          
         
     def minmax(self, depth: int, whoToMove: int):
       maxScore = -999
       bestMove = ''
       for legalMove in self.board.legal_moves:
-            score = -(self.negaMax(depth - 1, -whoToMove)[0])
+            score = -(self.negaMax(depth - 1, -whoToMove, 0, 0, 1)[0])
             if score == 0:
                 score = random.random()
             if score > maxScore:
@@ -60,9 +63,9 @@ class NegaAgent:
     def minmaxScout(self, depth: int, whoToMove: int, alpha, beta):
       bestMove = None
       for legalMove in self.board.legal_moves:
-          score = -(self.negaScout(depth - 1, -whoToMove, -beta, -alpha)[0])
+          score = -(self.negaMax(depth - 1, -whoToMove, -beta, -alpha, 2)[0])
           if score > alpha and score < beta and depth > 1:
-              score2 = -(self.negaScout(depth - 1, -whoToMove, -beta, -score))[0]
+              score2 = -(self.negaMax(depth - 1, -whoToMove, -beta, -score, 2))[0]
               score = max(score, score2)
           if score == 0:
               score = random.random()
@@ -75,18 +78,32 @@ class NegaAgent:
           beta = alpha + 1
       return alpha, bestMove
 
+    def minmaxPVC(self, depth: int, whoToMove: int, alpha, beta):
+      bestMove = None
+      for legalMove in self.board.legal_moves:
+         score = -(self.negaMax(depth - 1, -whoToMove, -beta, -alpha, 3)[0])
+         if (score > alpha) and (score < beta):
+             score = -(self.negaMax(depth - 1, -whoToMove, -beta, -score, 3))[0]
+         if score == 0:
+             score = random.random()
+         if score > alpha:
+             alpha = score
+             bestMove = legalMove
+         if alpha >= beta:
+             return alpha, bestMove
+         beta = alpha + 1
+      return alpha, bestMove
+
+
 board = chess.Board()
 negaAgent = NegaAgent(board)
 depth, whoToMove = 5, -1
-choose = input("input 1 to play against negaMax and 2 for negaScout")
-
+choice = input("input 1 to play against negaMax, 2 for negaScout and 3 for PVC")
+choice = int(choice)
 while not board.is_checkmate():
     print("Game state:\n")
     print(board)
     move = input("Input your move: ")
     board.push_san(move)
-    if choose == 1:
-      negaMove = negaAgent.negaMax(depth, whoToMove, 0, 0)[1]  
-    elif choose == 2:
-      negaMove = negaAgent.negaMax(depth, whoToMove, float("-inf"), float("inf"))[1]  
+    negaMove = negaAgent.negaMax(depth, whoToMove, 0, 0, choice)[1] 
     board.push(negaMove)
